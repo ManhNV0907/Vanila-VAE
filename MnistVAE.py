@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from utils import *
 
-class Encoder(nn.module):
+class Encoder(nn.Module):
     def __init__(self, image_size, hidden_size, latent_size):
         super().__init__()
         self.image_size = image_size ** 2
@@ -44,7 +44,7 @@ class Decoder(nn.Module):
     def forward(self, input):
         return self.main(input)
 
-class MnistVAE():
+class MnistVAE(nn.Module):
     def __init__(self, image_size, hidden_size, latent_size, device):
         super().__init__()
         self.image_size = image_size
