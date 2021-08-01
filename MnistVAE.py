@@ -2,61 +2,51 @@ import torch
 import torch.nn as nn
 from utils import *
 
-class Encoder(nn.Module):
-    def __init__(self, image_size, hidden_size, latent_size):
-        super().__init__()
-        self.image_size = image_size ** 2
-        self.hidden_size = hidden_size
-        self.latent_size = latent_size
-        self.main = nn.Sequential(
-            nn.Linear(self.image_size, 4 * self.hidden_size),
-            nn.LeakyReLU(0.2, True),
-            nn.Linear(4 * self.hidden_size, 2 * self.hidden_size),
-            nn.LeakyReLU(0.2, True),
-            nn.Linear(2 * self.hidden_size, self.hidden_size),
-            nn.LeakyReLU(0.2, True),
-        )
-        self.fc_mu = nn.Linear(self.hidden_size, self.latent_size)
-        self.fc_logvar = nn.Linear(self.hidden_size, self.latent_size)
-    def foward(self, input):
-        output = self.main(input.view(-1, self.image_size))
-        x_mu = self.fc_mu(output)
-        x_logvar = self.fc_logvar(output)
-        return x_mu, x_logvar
-    
-class Decoder(nn.Module):
-    def __init__(self, image_size, hidden_size, latent_size):
-        super(Decoder, self).__init__()
-        self.image_size = image_size ** 2
-        self.hidden_size = hidden_size
-        self.latent_size = latent_size
-        self.main = nn.Sequential(
-            nn.Linear(latent_size, hidden_size),
-            nn.ReLU(True),
-            nn.Linear(hidden_size, 2 * hidden_size),
-            nn.ReLU(True),
-            nn.Linear(2 * hidden_size, 4 * hidden_size),
-            nn.ReLU(True),
-            nn.Linear(4 * hidden_size, self.image_size),
-            nn.ReLU(True),
-        )
-
-    def forward(self, input):
-        return self.main(input)
-
 class MnistVAE(nn.Module):
     def __init__(self, image_size, hidden_size, latent_size, device):
-        super().__init__()
-        self.image_size = image_size
-        self.hidden_size = hidden_size
-        self.latent_size = latent_size
-        self.device = device
-        self.encoder = Encoder(image_size, hidden_size, latent_size)
-        self.decoder = Decoder(image_size, hidden_size, latent_size)
-    
+      super(MnistVAE, self).__init__()
+      self.image_size = image_size**2
+      self.hidden_size = hidden_size
+      self.latent_size = latent_size
+      self.device = device
+      # self.encoder = nn.Sequential(
+      #     nn.Linear(self.image_size, hidden_size),
+      #     nn.LeakyReLu(0.2,True)
+      #     nn.Linear(hidden_size, latent_size),
+      # )
+      self.encoder1 = nn.Sequential(
+        nn.Linear(self.image_size, hidden_size),
+        nn.ReLU(True),
+        nn.Linear(hidden_size, latent_size),
+      )
+      self.encoder2 = nn.Sequential(
+        nn.Linear(self.image_size, hidden_size),
+        nn.ReLU(True),
+        nn.Linear(hidden_size, latent_size),
+      )
+    # def encoder(x):
+    #   self.fc1 = nn.Linear(self.image_size, hidden_size)
+    #   self.fc2 = nn.Linear(hidden_size, latent_size)
+    #   self.fc3 = nn.Linear(hidden_size, latent_size)
+    #   x = F.relu(self.fc1(x.view(-1, 28 * 28)))
+    #   mu = self.fc2(x)
+    #   log_sigma = self.fc3(x)
+    #   return mu, log_sigma
+      
+      self.decoder = nn.Sequential(
+        nn.Linear(latent_size, hidden_size),
+        nn.ReLU(True),
+        nn.Linear(hidden_size, 2 * hidden_size),
+        nn.ReLU(True),
+        nn.Linear(2 * hidden_size, 4 * hidden_size),
+        nn.ReLU(True),
+        nn.Linear(4 * hidden_size, self.image_size),
+        nn.Sigmoid(),
+      )
 
     def forward(self, x):
-        latent_mu, latent_logvar = self.encoder(x)
+        latent_mu = self.encoder1(x.view(-1, 28 * 28))
+        latent_logvar =self.encoder2(x.view(-1, 28 * 28))
         latent = self.latent_sample(latent_mu, latent_logvar)
         x_recon = self.decoder(latent)
         return x_recon, latent_mu, latent_logvar

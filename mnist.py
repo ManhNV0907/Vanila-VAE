@@ -21,7 +21,7 @@ def main():
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
         )
-    parser.add_argument("--epochs", type=int, default=50, metavar="N", help="number of epoch to train (default: 50)")
+    parser.add_argument("--epochs", type=int, default=2, metavar="N", help="number of epoch to train (default: 50)")
     parser.add_argument("--lr", type=float, default=0.0005, metavar="LR", help="learning rate (default: 0.0005)")
     parser.add_argument(
         "--num_workers",
@@ -34,6 +34,8 @@ def main():
     parser.add_argument("--latent-size", type=int, default=32, help="Latent size")
     parser.add_argument("--hsize", type=int, default=100, help="h size")
     parser.add_argument("--dataset", type=str, default="MNIST", help="(MNIST||FMNIST)")
+    parser.add_argument('--log-interval', type=int, default=1000, metavar='N',
+                    help='how many batches to wait before logging training status')
 
     args = parser.parse_args()
 
@@ -83,7 +85,7 @@ def main():
             shuffle=False,
             num_workers=args.num_workers,
         )
-        model = MnistVAE(image_size=28, latent_size=args.latent_size, hidden_size = 100, device=device).to(device)
+        model = MnistVAE(image_size=28, latent_size=args.latent_size, hidden_size = 200, device=device).to(device)
         optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.5, 0.999))
         ite=0
         for epoch in range(args.epochs):
@@ -94,19 +96,20 @@ def main():
                 # vae reconstruction
                 image_batch_recon, latent_mu, latent_logvar = model(data)
                 # vae loss computation
-                loss = vae_loss(image_batch_recon, image_batch, latent_mu, latent_logvar)
+                loss = vae_loss(image_batch_recon, data, latent_mu, latent_logvar)
                 #backpropagation
                 optimizer.zero_grad()
                 loss.backward()
                 #one step of the optimizer
                 optimizer.step()
                 total_loss += loss.item()
-                if ite % 100 == 0:
-                    model.eval()
-                    model.train()
-                ite += 1
-        total_loss /= batch_idx + 1
-        print("Epoch:" + str(epoch) + "Loss" + str(total_loss))
+                if batch_idx % args.log_interval == 0:
+                  print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                      epoch, batch_idx * len(data), len(train_loader.dataset),
+                      100. * batch_idx / len(train_loader),
+                      loss.item() / len(data)))
+  
+        print("Epoch:" + str(epoch+1) + "Loss: " + str(total_loss/len(train_loader.dataset)))
 
 if __name__ == "__main__":
     main()
